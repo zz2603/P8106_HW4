@@ -8,25 +8,29 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(lasso2)
+library(tidyverse)
+library(caret)
 
 ```
 
-## R Markdown
+# Part 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## part a)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Fit a regression tree with lpsa as response variable and the other predictors as predictors. Use CV to determine the optimal tree size. Which tree size corresponds to the lowest cv error? Is this the same as the tree size obtained using 1 SE rules?
 
-```{r cars}
-summary(cars)
+```{r }
+data(Prostate)
+
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r }
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
