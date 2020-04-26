@@ -11,6 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(lasso2)
 library(tidyverse)
 library(caret)
+library(rpart)
+library(rpart.plot)
+
 
 ```
 
@@ -20,17 +23,76 @@ library(caret)
 
 Fit a regression tree with lpsa as response variable and the other predictors as predictors. Use CV to determine the optimal tree size. Which tree size corresponds to the lowest cv error? Is this the same as the tree size obtained using 1 SE rules?
 
-```{r }
+```{r echo=FALSE}
 data(Prostate)
 
+dat <- janitor::clean_names(Prostate) %>% drop_na()
+
+ctrl1 <- trainControl(method = "cv")
+
+set.seed(1)
+rpart2.fit <- train(lpsa~.,data = dat,
+                   method = "rpart2",
+                   tuneGrid = data.frame(maxdepth = 2:10),
+                   trControl = ctrl1)
+
+ggplot(rpart2.fit,highlight = TRUE)
+
+rpart2.fit$bestTune
+
+
+
+```
+
+Using the cross validation, we can find out that the tree size = 6 correspond to the lowest CV error.
+
+```{r 1SE,echo=FALSE}
+set.seed(1)
+tree1 <- rpart(formula = lpsa~.,data = dat) 
+
+cpTable <- printcp(tree1)
+plotcp(tree1)
+
+minErr <- which.min(cpTable[,4])
+tree2 <- prune(tree1,cp=cpTable[cpTable[,4]<cpTable[minErr,4]+cpTable[minErr,5],1][1])
+plotcp(tree2)
+
+```
+
+Using the 1 SE rule, we can see the tree size = 3 has the lowest x-error.
+
+The tree size obtained by using cross validation is different from the tree size obtained by using 1 SE rule.
+
+## part b)
+
+Create a plot of final tree you choose. Pick one of the terminal nodes, and interpret the information displayed.
+
+I'd choose the tree created by 1 SE rules due to relatively smaller cross validation error.
+
+```{r plot, echo=FALSE}
+rpart.plot(tree2)
+
+```
+
+I choose the terminal node lcavol < 2.5. If log(cancer volumn) is smaller than 2.5, there is 78% chance for log(prostate specific antigen) to be 2.1. If the log(cancer volumn) is greater than 2.5, there is 22% chance for log(prostate specific antigen) to be 3.8.
+
+## part c)
+
+Perform bagging and report the variable importance.
+
+```{r}
+
+
 
 ```
 
 
 
-```{r }
 
 
-```
+
+
+
+
 
 
