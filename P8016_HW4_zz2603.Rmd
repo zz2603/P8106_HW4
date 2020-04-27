@@ -219,7 +219,7 @@ The auc of the classification tree using CV is `r roc_rpart2$auc[1]`.
 
 Perform random forests on the training set and report variable importance. What is the test error rate?
 
-```{r }
+```{r echo=FALSE}
 rf_grid <- expand.grid(mtry = 1:6,
                        splitrule = "gini",
                        min.node.size = 1:6)
@@ -259,9 +259,33 @@ The auc obtained by random forest is `r roc_rf$auc[1]`.
 
 Perform boosting on the training set and report variable importance. What's the test error rate?
 
-```{r}
+```{r echo=FALSE}
+gbmA_grid <- expand.grid(n.trees = c(1000,2000,3000),
+                         interaction.depth = 1:6,
+                         shrinkage = c(0.001,0.003,0.005),
+                         n.minobsinnode = 1)
+
+set.seed(1)
+gbmA_fit <- train(purchase~.,jojo,
+                  subset = rowTrain,
+                  tuneGrid = gbmA_grid,
+                  trControl = ctrl2,
+                  method = "gbm",
+                  distribution = "adaboost",
+                  metric = "ROC",
+                  verbose = FALSE)
+
+ggplot(gbmA_fit,highlight = TRUE)
+
+gbmA_pred <- predict(gbmA_fit,newdata = jojo[-rowTrain,],type="prob")[,1]
+
+summary(gbmA_fit$finalModel,las = 2, cBars = 19, cex.names = 0.6)
+
+roc_gbmA <- roc(jojo$purchase[-rowTrain],gbmA_pred)
 
 ```
 
+The LoyalCH has the greatest relative influence on the model and it's much greater than others. Besides LoyalCH and price_diff, the other variables' importance are approximate to 0.
 
+The AUC obtained by boosting is `r roc_gbmA$auc[1]`.
 
