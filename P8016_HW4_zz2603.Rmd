@@ -13,7 +13,9 @@ library(tidyverse)
 library(caret)
 library(rpart)
 library(rpart.plot)
-
+library(randomForest)
+library(ranger)
+library(gbm)
 
 ```
 
@@ -80,17 +82,105 @@ I choose the terminal node lcavol < 2.5. If log(cancer volumn) is smaller than 2
 
 Perform bagging and report the variable importance.
 
-```{r}
+```{r echo=FALSE}
+set.seed(1)
+bag.fit <- train(lpsa~., dat,
+                 method = "rf",
+                 trControl = ctrl1)
 
+set.seed(1)
+bag.final.per <- ranger(lpsa~.,dat,
+                        mtry=8,splitrule="variance",
+                        min.node.size = 7,
+                        importance="permutation",
+                        scale.permutation.importance=TRUE)
+
+barplot(sort(ranger::importance(bag.final.per),decreasing = FALSE),
+        las=2,horiz = TRUE,cex.names = 0.7,
+        col = colorRampPalette(colors = c("darkred","white","darkblue"))(19))
+
+```
+
+The log(cancer volumn) has the greatest relative importance (apporximate to 35). The age has the least imporance in the model.
+
+## part d)
+
+Perform random forest and the variable importance.
+
+```{r echo=FALSE}
+rf.grid <- expand.grid(mtry=1:8,
+                      splitrule = "variance",
+                      min.node.size = 1:8)
+
+set.seed(1)
+rf.fit <- train(lpsa~., dat,
+                 method = "ranger",
+                 tuneGrid = rf.grid,
+                 trControl = ctrl1)
+
+ggplot(bag.fit,highlight = TRUE)
+
+set.seed(1)
+rf.final.per <- ranger(lpsa~.,dat,
+                       mtry = 3,splitrule = "variance",
+                       min.node.size = 7,
+                       importance = "impurity")
+
+barplot(sort(ranger::importance(rf.final.per),decreasing = FALSE),
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("darkred","white","darkblue"))(19))
 
 
 ```
 
+The log(cancer volumn) has the greatest variable importance (>40) and gleason score has the smallest. 
+
+## part E
+
+Perform boosting and report variable importance
+
+```{r echo=FALSE}
+gbm.grid <- expand.grid(n.trees = c(1000,2000),
+                        interaction.depth = 1:8,
+                        shrinkage = c(0.001,0.003,0.005),
+                        n.minobsinnode = 1)
+
+set.seed(1)
+gbm.fit <- train(lpsa~.,dat,method = "gbm",
+                 tuneGrid = gbm.grid,
+                 trControl = ctrl1,
+                 verbose = FALSE)
+
+ggplot(gbm.fit,highlight = TRUE)
+
+summary(gbm.fit$finalModel,las = 2,cBars = 19,cex.names = 0.6)
+
+```
+
+The log(cancer volumn) has the greatest relative influence among all predictors (51.53). The gleason score has the smallest (1.70).
+
+## Part F
+
+Which model will you select to predict PSA level? Explain.
+
+```{r echo=FALSE}
+resamp <- resamples(list(bag = bag.fit, rf = rf.fit, gbm = gbm.fit))
+summary(resamp)
+
+```
+
+The random forest has the smallest median and mean of RMSE; however, the boosting has larger mean and median of Rsquared. I prefer choosing random forest.
+
+# Part 2
+
+## Fit a classification tree to the training set, with Purchase as the response and the other variables as predictors. Use cross validation to determine the tree size and create a plot of the final tree. Predicted the response on the test data. What's the classification error rate?
+
+```{r}
 
 
 
 
-
+```
 
 
 
