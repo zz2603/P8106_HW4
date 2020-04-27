@@ -16,6 +16,8 @@ library(rpart.plot)
 library(randomForest)
 library(ranger)
 library(gbm)
+library(ISLR)
+library(pROC)
 
 ```
 
@@ -173,16 +175,93 @@ The random forest has the smallest median and mean of RMSE; however, the boostin
 
 # Part 2
 
-## Fit a classification tree to the training set, with Purchase as the response and the other variables as predictors. Use cross validation to determine the tree size and create a plot of the final tree. Predicted the response on the test data. What's the classification error rate?
+## part a) 
 
-```{r}
+Fit a classification tree to the training set, with Purchase as the response and the other variables as predictors. Use cross validation to determine the tree size and create a plot of the final tree. Predicted the response on the test data. What's the classification error rate?
 
+```{r echo=FALSE}
+data(OJ)
 
+jojo <- OJ %>% janitor::clean_names()
+jojo$purchase <- factor(jojo$purchase,c("CH","MM"))
+
+set.seed(1)
+rowTrain <- createDataPartition(y=jojo$purchase,
+                                p=799/1070,
+                                list = FALSE)
+
+ctrl2 <- trainControl(method = "repeatedcv",
+                      summaryFunction = twoClassSummary,
+                      classProbs = TRUE)
+
+set.seed(1)
+rpart2_fit <- train(purchase~.,jojo,
+                    subset = rowTrain,
+                    method = "rpart2",
+                    tuneGrid = data.frame(maxdepth = 1:17),
+                    trControl = ctrl2,
+                    metric = "ROC")
+
+ggplot(rpart2_fit,highlight = TRUE)
+rpart2_fit$bestTune
+
+rpart.plot(rpart2_fit$finalModel)
+
+rpart2_pred <- predict(rpart2_fit,newdata = jojo[-rowTrain,],type = "prob")[,1]
+
+roc_rpart2 <- roc(jojo$purchase[-rowTrain],rpart2_pred)
+
+```
+
+The auc of the classification tree using CV is `r roc_rpart2$auc[1]`.
+
+## part b)
+
+Perform random forests on the training set and report variable importance. What is the test error rate?
+
+```{r }
+rf_grid <- expand.grid(mtry = 1:6,
+                       splitrule = "gini",
+                       min.node.size = 1:6)
+
+set.seed(1)
+rf_fit <- train(purchase~.,jojo,
+                subset = rowTrain,
+                method = "ranger",
+                tuneGrid = rf_grid,
+                metric = "ROC",
+                trControl = ctrl2)
+
+ggplot(rf_fit,highlight = TRUE)
+
+rf_pred <- predict(rf_fit, newdata = jojo[-rowTrain,],type = "prob")[,1]
+
+roc_rf <- roc(jojo$purchase[-rowTrain],rf_pred)
+
+set.seed(1)
+rf_final_per <- ranger(purchase~.,jojo[rowTrain,],
+                       mtry = 3,splitrule = "gini",
+                       min.node.size = 6,
+                       importance = "impurity")
+
+barplot(sort(ranger::importance(rf_final_per),decreasing = FALSE),
+        las = 2, horiz = TRUE, cex.names = 0.7,
+        col = colorRampPalette(colors = c("cyan","blue"))(8))
 
 
 ```
 
+Based on the plot of importance, the variable LoyalCH has the greatest importance (>120) on the model and its importance is much greater than others. On the opposite, SpecialMM and Special CH has the smallest importance to the model.
 
+The auc obtained by random forest is `r roc_rf$auc[1]`.
+
+## part c)
+
+Perform boosting on the training set and report variable importance. What's the test error rate?
+
+```{r}
+
+```
 
 
 
